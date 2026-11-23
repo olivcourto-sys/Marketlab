@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="MarketLab">
+<title>MarketLab — Laboratoire boursier</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf3fc;background:#0b1220;color-scheme:dark}*{box-sizing:border-box}body{margin:0}main{max-width:800px;margin:auto;padding:24px 16px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font-size:27px;margin:0}h2{font-size:18px;margin:0 0 12px}p{color:#b5c3d5;line-height:1.5}.muted,small{color:#a5b4c9}.pill{background:#173e36;color:#89f0c3;border-radius:99px;padding:7px 10px;font-size:12px}.card{background:#151f30;border:1px solid #2a3950;border-radius:18px;padding:18px;margin-top:15px}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stats .card{margin-top:0}.number{font-size:24px;font-weight:750;margin:6px 0}.ticker{display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid #2a3950;padding:13px 0}.ticker:first-of-type{border:0}.ticker strong{font-size:18px}.ticker .right{text-align:right}button,input,select{font:inherit}button{background:#5a83fa;border:0;border-radius:11px;color:white;padding:11px 14px;font-weight:650;cursor:pointer}button.secondary{background:#28374d}button.danger{background:#56313a}input,select{width:100%;background:#0c1524;color:white;border:1px solid #40516a;border-radius:10px;padding:11px;margin-top:5px}label{display:block;font-size:13px;color:#b7c5d7;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.note{font-size:12px}.positive{color:#82e5af}.negative{color:#ff9c9c}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:10px 5px;text-align:left;border-bottom:1px solid #2a3950}th{color:#b5c3d5}svg{width:100%;height:180px;display:block}.scroll{overflow-x:auto}footer{margin-top:25px;color:#91a2b8;font-size:12px}#message{min-height:18px;color:#90efc1}
+</style>
+</head>
+<body><main>
+<header><div><h1>📈 MarketLab</h1><small>Laboratoire de prévision boursière</small></div><span class="pill">● Simulation</span></header>
+<p>Expérience du 23 novembre au 18 décembre 2026. Trois actions, des hypothèses mesurables et aucun argent réel.</p>
+<div class="stats"><section class="card"><small>Capital fictif initial</small><div class="number" id="capital">10 000 $</div></section><section class="card"><small>Valeur simulée</small><div class="number" id="value">—</div></section><section class="card"><small>Performance</small><div class="number" id="performance">—</div></section><section class="card"><small>Cours enregistrés</small><div class="number" id="count">0</div></section></div>
+<section class="card"><h2>Nos trois actions</h2><div id="assets"></div><p class="note">Les prix affichés proviennent de tes saisies, pas d'une connexion boursière en direct. Les montants sont en dollars américains (USD).</p></section>
+<section class="card"><h2>Enregistrer un cours de clôture</h2><div class="grid"><label>Action<select id="symbol"><option value="NVDA">Nvidia (NVDA)</option><option value="LLY">Eli Lilly (LLY)</option><option value="PLTR">Palantir (PLTR)</option></select></label><label>Date<input id="date" type="date" min="2026-11-23" max="2026-12-18"></label></div><label>Clôture en USD<input id="price" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ex. 150.25"></label><button id="save">Enregistrer le cours</button><p id="message" aria-live="polite"></p></section>
+<section class="card"><h2>Évolution d'une action</h2><label>Afficher<select id="chartSymbol"><option value="NVDA">Nvidia</option><option value="LLY">Eli Lilly</option><option value="PLTR">Palantir</option></select></label><div id="chart"></div><p class="note">Graphique basé uniquement sur les cours enregistrés.</p></section>
+<section class="card"><h2>Hypothèses de prévision</h2><p class="note">Définis une variation attendue à l'horizon du 18 décembre. Une prévision est une hypothèse, pas une garantie.</p><div id="forecasts"></div><button id="saveForecasts">Enregistrer les prévisions</button></section>
+<section class="card"><h2>Historique des clôtures</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Action</th><th>Clôture</th><th></th></tr></thead><tbody id="history"></tbody></table></div></section>
+<section class="card"><h2>Mes données</h2><p class="note">Les informations restent enregistrées dans ce navigateur sur cet appareil. Elles ne se synchronisent pas automatiquement entre appareils. Exporte régulièrement une sauvegarde.</p><div class="actions"><button id="export">Exporter la sauvegarde</button><button class="secondary" id="importButton">Importer</button><input id="importFile" type="file" accept="application/json,.json" hidden><button class="danger" id="reset">Effacer les données</button></div></section>
+<footer>MarketLab v1 • Simulation pédagogique uniquement. Aucun ordre de bourse ni conseil personnalisé. Les cours et prévisions ne sont pas fournis automatiquement.</footer>
+</main>
+<script>
+'use strict';
+const KEY='marketlab-v1';
+const names={NVDA:'Nvidia',LLY:'Eli Lilly',PLTR:'Palantir'};
+const symbols=Object.keys(names);
+const initial=10000;
+let data=load();
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.prices)&&v.forecasts&&typeof v.forecasts==='object')return v}catch(e){}return {prices:[],forecasts:{NVDA:0,LLY:0,PLTR:0}}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch(e){alert('Stockage indisponible : exporte une sauvegarde de tes données.');return false}}
+function money(n){return Number.isFinite(n)?new Intl.NumberFormat('fr-FR',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n):'—'}
+function pct(n){return Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+' %':'—'}
+function records(s){return data.prices.filter(x=>x.symbol===s).sort((a,b)=>a.date.localeCompare(b.date))}
+function latest(s){const r=records(s);return r.length?r[r.length-1]:null}
+function first(s){const r=records(s);return r.length?r[0]:null}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){
+ document.getElementById('count').textContent=data.prices.length;
+ const allReady=symbols.every(s=>first(s));
+ let value=0;
+ if(allReady){symbols.forEach(s=>{value+=(initial/3)*(latest(s).price/first(s).price)})}
+ document.getElementById('value').textContent=allReady?money(value):'—';
+ document.getElementById('performance').textContent=allReady?pct((value/initial-1)*100):'—';
+ document.getElementById('performance').className='number '+(allReady?(value>=initial?'positive':'negative'):'');
+ document.getElementById('assets').innerHTML=symbols.map(s=>{const a=first(s),b=latest(s),change=a&&b?(b.price/a.price-1)*100:NaN;return `<div class="ticker"><div><strong>${s}</strong><div class="muted">${names[s]}</div></div><div class="right"><strong>${b?money(b.price):'Aucun cours'}</strong><div class="${change>=0?'positive':'negative'}">${pct(change)}</div></div></div>`}).join('');
+ document.getElementById('history').innerHTML=[...data.prices].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<tr><td>${escapeHTML(x.date)}</td><td>${escapeHTML(x.symbol)}</td><td>${money(x.price)}</td><td><button class="secondary" data-delete="${escapeHTML(x.symbol+'|'+x.date)}" aria-label="Supprimer">×</button></td></tr>`).join('')||'<tr><td colspan="4">Aucun cours enregistré.</td></tr>';
+ document.getElementById('forecasts').innerHTML=symbols.map(s=>{const a=first(s),b=latest(s),target=a?a.price*(1+Number(data.forecasts[s]||0)/100):NaN;const error=b&&b.date==='2026-12-18'&&Number.isFinite(target)?Math.abs((target/b.price-1)*100):NaN;return `<div class="ticker"><div style="flex:1"><strong>${s}</strong><label>Variation prévue (%)<input type="number" step="0.1" min="-99" max="1000" data-forecast="${s}" value="${Number(data.forecasts[s]||0)}"></label><small>Cible : ${money(target)}${Number.isFinite(error)?' • Écart final : '+error.toFixed(2)+' %':''}</small></div></div>`}).join('');
+ drawChart();
+}
+function drawChart(){const r=records(document.getElementById('chartSymbol').value),el=document.getElementById('chart');if(r.length<2){el.innerHTML='<p>Enregistre au moins deux clôtures pour afficher une courbe.</p>';return}const w=600,h=180,pad=24,values=r.map(x=>x.price),min=Math.min(...values),max=Math.max(...values),range=max-min||1;const pts=values.map((v,i)=>`${pad+i*(w-2*pad)/(values.length-1)},${h-pad-(v-min)/range*(h-2*pad)}`).join(' ');el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Évolution des cours"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#607089"/><polyline fill="none" stroke="#80a4ff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/><text x="${pad}" y="14" fill="#c3d0e3" font-size="12">Max ${max.toFixed(2)} USD</text><text x="${pad}" y="${h-5}" fill="#c3d0e3" font-size="12">${r[0].date}</text><text x="${w-pad}" y="${h-5}" text-anchor="end" fill="#c3d0e3" font-size="12">${r[r.length-1].date}</text></svg>`}
+document.getElementById('save').onclick=()=>{const symbol=document.getElementById('symbol').value,date=document.getElementById('date').value,price=Number(document.getElementById('price').value),message=document.getElementById('message');if(!symbols.includes(symbol)||!/^2026-\d{2}-\d{2}$/.test(date)||date<'2026-11-23'||date>'2026-12-18'||!Number.isFinite(price)||price<=0){message.textContent='Vérifie la date et le cours positif.';return}data.prices=data.prices.filter(x=>!(x.symbol===symbol&&x.date===date));data.prices.push({symbol,date,price});persist();render();message.textContent='Clôture enregistrée. Une saisie de même date remplace la précédente.';document.getElementById('price').value=''};
+document.getElementById('chartSymbol').onchange=drawChart;
+document.getElementById('saveForecasts').onclick=()=>{const next={};for(const el of document.querySelectorAll('[data-forecast]')){const n=Number(el.value);if(!Number.isFinite(n)||n< -99||n>1000){alert('Prévision hors limites (-99 à 1000 %).');return}next[el.dataset.forecast]=n}data.forecasts=next;persist();render();alert('Prévisions enregistrées. Attention : elles restent modifiables.')};
+document.getElementById('history').onclick=e=>{const b=e.target.closest('[data-delete]');if(!b)return;const [symbol,date]=b.dataset.delete.split('|');if(confirm(`Supprimer ${symbol} du ${date} ?`)){data.prices=data.prices.filter(x=>!(x.symbol===symbol&&x.date===date));persist();render()}};
+document.getElementById('export').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='marketlab-sauvegarde.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+document.getElementById('importButton').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const obj=JSON.parse(await file.text());if(!Array.isArray(obj.prices)||!obj.forecasts||typeof obj.forecasts!=='object'||obj.prices.some(x=>!symbols.includes(x.symbol)||typeof x.date!=='string'||!/^2026-\d{2}-\d{2}$/.test(x.date)||x.date<'2026-11-23'||x.date>'2026-12-18'||!Number.isFinite(x.price)||x.price<=0)||symbols.some(s=>!Number.isFinite(Number(obj.forecasts[s]??0))))throw Error('Format invalide');if(confirm('Remplacer toutes les données actuelles par cette sauvegarde ?')){data={prices:obj.prices,forecasts:obj.forecasts};persist();render()}}catch(err){alert('Impossible de lire cette sauvegarde.')}e.target.value=''};
+document.getElementById('reset').onclick=()=>{if(confirm('Effacer définitivement les données locales de MarketLab ?')){data={prices:[],forecasts:{NVDA:0,LLY:0,PLTR:0}};persist();render()}};
+document.getElementById('date').value='2026-11-23';render();
+</script></body></html>
